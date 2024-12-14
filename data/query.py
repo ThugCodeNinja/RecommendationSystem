@@ -51,3 +51,13 @@ def create_tables():
         transaction_amount DECIMAL(10, 2),
         timestamp TIMESTAMP);""").collect()
 
+    new_session.sql("""
+    CREATE TABLE IF NOT EXISTS coupons (
+    coupon_id STRING PRIMARY KEY,
+    user_id STRING REFERENCES users(user_id),
+    product_id STRING REFERENCES products(product_id),
+    discount DECIMAL(5,2),
+    expiration_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""").collect()
+
