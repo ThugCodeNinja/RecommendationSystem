@@ -149,14 +149,24 @@ class RAG:
             question = self.summarize_chat_history(chat_history, question) if chat_history else question
         context = self.get_similar_context(question)
         prompt = f"""
-        Use CONTEXT and CHAT HISTORY to answer the QUESTION:
+                You are an expert software troubleshooting assistant. Use the provided CONTEXT and CHAT HISTORY to answer the QUESTION accurately and concisely. 
 
-        <chat_history>{question}</chat_history>
-        <context>{context}</context>
-        <question>{question}</question>
+                - If the CONTEXT is highly relevant, incorporate it into your response to address the QUESTION. 
+                - If the CONTEXT is partially relevant, clarify its limitations and provide additional information based on your expertise. 
+                - If the CONTEXT does not contain relevant information, respond with: "No related information in the database," and then attempt to answer the QUESTION using CHAT HISTORY or general knowledge. 
 
-        Answer concisely.
-        """
+                CONTEXT:
+                {context}
+
+                CHAT HISTORY:
+                {chat_history}
+
+                QUESTION:
+                {question}
+
+                Your response must be clear, actionable, and directly address the QUESTION. Avoid vague or irrelevant details.
+                """
+
         return prompt
 
     def get_chat_history(self):
