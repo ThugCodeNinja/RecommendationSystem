@@ -1,24 +1,17 @@
 import streamlit as st
 from snowflake.snowpark import Session
-from snowflake.snowpark.files import SnowflakeFile
 import pandas as pd
 from config import *
 from snowflake.core import Root
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from snowflake.snowpark.types import StringType, StructField, StructType
 import PyPDF2
 import io
-from trulens.apps.custom import instrument
-from trulens.core import TruSession
+from trulens.apps.custom import instrument,TruCustomApp
+from trulens.core import TruSession,Feedback,Select
 from trulens.connectors.snowflake import SnowflakeConnector
 from trulens.providers.cortex.provider import Cortex
-from trulens.core import Feedback
-from trulens.core import Select
 import numpy as np
-from trulens.apps.custom import TruCustomApp
 import asyncio
 from datetime import datetime
-#from trulens.core.feedback import Groundedness
 
 class RAG:
     def __init__(self):
@@ -42,17 +35,21 @@ class RAG:
         """
         Configure TruLens feedback mechanisms.
         """
-        query = Select.Record.app.retriever._get_relevant_documents.args.query  
-        context = Select.Record.app.retriever.get_relevant_documents.rets[:].page_content
-
         f_context_relevance = (
             Feedback(self.provider.context_relevance, name="Context Relevance")
             .on(Select.RecordCalls.get_similar_context.args.question)
             .on(Select.RecordCalls.get_similar_context.rets[:])
             .aggregate(np.mean)
         )
+
+        f_answer_relevance = (
+            Feedback(self.provider.relevance_with_cot_reasons, name="Answer Relevance")
+            .on_input_output()
+            .aggregate(lambda x: float(x) if isinstance(x, (int, float)) else 0)  # Ensure numeric aggregation
+        )
+
         #return [f_groundedness, f_answer_relevance, f_context_relevance]
-        return [f_context_relevance]
+        return [f_context_relevance,f_answer_relevance]
 
     def main(self):
         st.title(":speech_balloon: Software Issue Assistant")
@@ -164,7 +161,7 @@ class RAG:
                 QUESTION:
                 {question}
 
-                Your response must be clear, actionable, and directly address the QUESTION. Avoid vague or irrelevant details.
+                Your response must be concise, clear, actionable, and directly address the QUESTION. Avoid vague or irrelevant details.
                 """
 
         return prompt
@@ -208,17 +205,24 @@ class RAG:
         """
         Asynchronously evaluate feedback for the given question and response.
         """
-        feedback_results = {
-            "Context Relevance": await asyncio.to_thread(self.feedbacks[0], question, response)
-        }
+        feedback_results = {}
+        try:
+            context_relevance_score = await asyncio.to_thread(self.feedbacks[0], question, response)
+            feedback_results["Context Relevance"] = context_relevance_score
+
+            answer_relevance_score = await asyncio.to_thread(self.feedbacks[1], question, response)
+            feedback_results["Answer Relevance"] = answer_relevance_score
+        except Exception as e:
+            st.error(f"Error in feedback evaluation: {str(e)}")
+
         return feedback_results
+
 
     def configure_sidebar(self):
         st.sidebar.selectbox("Select your model:", ["mistral-large", "llama2-70b-chat"], key="model_name")
         st.sidebar.checkbox("Remember chat history?", key="use_chat_history", value=True)
         st.sidebar.button("Start Over", key="clear_conversation")
-        # st.sidebar.expander("Trulens Dashboard").write(self.tru_session.get_leaderboard())
-    
+        
     def display_feedback_results_in_sidebar(self, feedback_results):
         """
         Display feedback results neatly in the sidebar.
@@ -228,13 +232,32 @@ class RAG:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.write(f"**Feedback evaluated at {timestamp}:**")
             for feedback_name, score in feedback_results.items():
-                st.write(f"- {feedback_name}: {score:.2f}")
+                try:
+                    numeric_score = float(score)
+                    st.write(f"- {feedback_name}: {numeric_score:.2f}")
+                except (TypeError, ValueError):
+                    st.write(f"- {feedback_name}: {score[0]}")
             st.divider()
 
             # Optionally store results for later use
             if "feedback_history" not in st.session_state:
                 st.session_state.feedback_history = []
             st.session_state.feedback_history.append({"timestamp": timestamp, "results": feedback_results})
+            self.store_feedback_in_snowflake(timestamp, feedback_results)
+
+    def store_feedback_in_snowflake(self, timestamp, feedback_results):
+        """
+        Store the feedback results in a Snowflake table.
+        """
+        insert_query = "INSERT INTO feedback_history (TIMESTAMP, FEEDBACK_NAME, SCORE) VALUES (?, ?, ?)"
+        for feedback_name, score in feedback_results.items():
+            try:
+                numeric_score = float(score)
+                self.session.sql(insert_query, params=[timestamp, feedback_name, numeric_score]).collect()
+            except (TypeError, ValueError):
+                self.session.sql(insert_query, params=[timestamp, feedback_name, float(score[0])]).collect()
+        st.sidebar.success("Feedback stored!")
+
 
     def initialize_messages(self):
         if st.session_state.get("clear_conversation", False) or "messages" not in st.session_state:

@@ -1,8 +1,10 @@
 streamlit
 trulens-providers-cortex
 PyPDF2
-langchain
 snowflake.core
 snowflake-connector-python
 bs4
 pandas
+trulens-connectors-snowflake
+snowflake-connector-python[pandas]  
+snowflake-snowpark-python 
