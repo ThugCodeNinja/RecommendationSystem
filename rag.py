@@ -1,7 +1,6 @@
 import streamlit as st
 from snowflake.snowpark import Session
 import pandas as pd
-from config import *
 from snowflake.core import Root
 import PyPDF2
 import io
@@ -16,18 +15,18 @@ from datetime import datetime
 class RAG:
     def __init__(self):
         self.connection_parameters = {
-            "account": account,
-            "user": user,
-            "password": password,
-            "database": database,
-            "schema": schema,
-            "role": role,
-            "warehouse": warehouse
+            "account": st.secrets["snowflake"]["account"],
+            "user": st.secrets["snowflake"]["user"],
+            "password": st.secrets["snowflake"]["password"],
+            "database": st.secrets["snowflake"]["database"],
+            "schema": st.secrets["snowflake"]["schema"],
+            "role": st.secrets["snowflake"]["role"],
+            "warehouse": st.secrets["snowflake"]["warehouse"]
         }
         self.session = Session.builder.configs(self.connection_parameters).create()
         self.tru_snowflake_connector = SnowflakeConnector(snowpark_session=self.session)
         self.tru_session = TruSession(connector=self.tru_snowflake_connector)
-        self.provider = Cortex(self.session.connection, "mistral-large")
+        self.provider = Cortex(self.session, "mistral-large")
         self.slide_window = 7  # Number of chat messages to remember
         self.feedbacks = self.configure_feedbacks()
 
