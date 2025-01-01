@@ -2,3 +2,4 @@ config.py
 Dataset_huggingface_libraries.csv
 monitor.py
 __pycache__
+.streamlit

@@ -5,6 +5,5 @@ snowflake.core
 snowflake-connector-python
 bs4
 pandas
-trulens-connectors-snowflake
-snowflake-connector-python[pandas]  
+trulens-connectors-snowflake 
 snowflake-snowpark-python 
