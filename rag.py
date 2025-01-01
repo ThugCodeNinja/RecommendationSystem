@@ -187,8 +187,8 @@ class RAG:
         """
         cortex_search_service = (
             Root(self.session)
-            .databases[database]
-            .schemas[schema]
+            .databases[st.secrets["snowflake"]["database"]]
+            .schemas[st.secrets["snowflake"]["schema"]]
             .cortex_search_services["question_search"]
         )
         context_documents = cortex_search_service.search(
