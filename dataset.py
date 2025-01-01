@@ -1,18 +1,17 @@
 import pandas as pd
 from snowflake.snowpark import Session
-from config import *
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
 tqdm.pandas()
 connection_parameters = {
-    "account": account,
-    "user": user,
-    "password": password,
-    "database": database,
-    "schema": schema,
-    "role": role,
-    "warehouse": warehouse
+            "account": st.secrets["snowflake"]["account"],
+            "user": st.secrets["snowflake"]["user"],
+            "password": st.secrets["snowflake"]["password"],
+            "database": st.secrets["snowflake"]["database"],
+            "schema": st.secrets["snowflake"]["schema"],
+            "role": st.secrets["snowflake"]["role"],
+            "warehouse": st.secrets["snowflake"]["warehouse"]
 }
 new_session = Session.builder.configs(connection_parameters).create()
 new_session.sql("CREATE DATABASE IF NOT EXISTS cortex_search_db").collect()
