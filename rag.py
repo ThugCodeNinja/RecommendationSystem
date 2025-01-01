@@ -13,15 +13,6 @@ import asyncio
 from datetime import datetime
 import os
 
-account = os.getenv("SNOWFLAKE_ACCOUNT")
-user = os.getenv("SNOWFLAKE_USER")
-password = os.getenv("SNOWFLAKE_PASSWORD")
-database = os.getenv("SNOWFLAKE_DATABASE")
-schema = os.getenv("SNOWFLAKE_SCHEMA")
-role = os.getenv("SNOWFLAKE_ROLE")
-warehouse = os.getenv("SNOWFLAKE_WAREHOUSE")
-
-
 class RAG:
     def __init__(self):
         self.connection_parameters = {
