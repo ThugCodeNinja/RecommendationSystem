@@ -52,7 +52,7 @@ class RAG:
         return [f_context_relevance,f_answer_relevance]
 
     def main(self):
-        st.set_page_config(page_title="BugWise", page_icon="🌙", layout="wide", theme={"base": "dark"})
+        #st.set_page_config(page_title="BugWise", page_icon="🌙", layout="wide", theme={"base": "dark"})
         st.title(":speech_balloon: BugWise - Your first line assistant")
         st.sidebar.title("Configuration")
         self.configure_sidebar()
