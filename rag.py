@@ -52,7 +52,7 @@ class RAG:
         return [f_context_relevance,f_answer_relevance]
 
     def main(self):
-        st.title(":speech_balloon: Software Issue Assistant")
+        st.title(":speech_balloon: BugWise - Your first line assistant")
         st.sidebar.title("Configuration")
         self.configure_sidebar()
         self.initialize_messages()
@@ -143,6 +143,8 @@ class RAG:
     def create_prompt(self, question):
         if st.session_state.use_chat_history:
             chat_history = self.get_chat_history()
+        else: 
+            chat_history = False
             question = self.summarize_chat_history(chat_history, question) if chat_history else question
         context = self.get_similar_context(question)
         prompt = f"""
